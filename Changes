@@ -1,5 +1,8 @@
 Revision history for Bot-BasicBot-Pluggable-Module-NatTrivia
 
+0.01_2  Sat Oct 29 13:28:45 WEST 2011
+        Fix Makefile dependencies.
+
 0.01_1  Fri Oct 28 14:14:38 WEST 2011
         First devel release.
 

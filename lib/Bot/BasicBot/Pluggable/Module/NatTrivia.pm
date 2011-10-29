@@ -3,12 +3,17 @@ package Bot::BasicBot::Pluggable::Module::NatTrivia;
 use strict;
 use Bot::BasicBot::Pluggable::Module;
 use LWP::Simple;
+use LWP::UserAgent;
+use Encode;
 
 use vars qw( @ISA $VERSION );
 @ISA     = qw(Bot::BasicBot::Pluggable::Module);
-$VERSION = '0.01_1';
+$VERSION = '0.01_2';
 
 my $cmds  = qr/nattrivia/;
+
+my $ua = LWP::UserAgent->new;
+$ua->timeout(10);
 
 my ($topic, $question, $answer);
 my $tries = 0;
@@ -67,7 +72,13 @@ sub told {
 	}
 
 	if ($running and $question) {
-		if ($msg eq $answer) {
+   	my $request = HTTP::Request->new(POST => 'http://eremita.di.uminho.pt:3000/verify');
+   	$request->content_type("text/xml; charset=utf-8");
+   	$request->content("<question>$question</question><answer>$msg</answer>");
+print STDERR "###\n<question>$question</question><answer>$msg</answer>\n###\n";
+		my $response = $ua->request($request);
+
+		if ($response =~ /correcto/i) {
 			$question = '';
 			$reply = 'certo!';
 			$players{$mess->{who}}++;
@@ -103,17 +114,19 @@ sub tick {
 	return if $question;
 	return unless $running;
 
-		my $xml = get 'http://eremita.di.uminho.pt/~nrc/services/trivial/';
-		$xml =~ m/<topic>(.*?)<\/topic>/i;
-		$topic = $1;
-		$xml =~ m/<question>(.*?)<\/question>/i;
-		$question = $1;
-		$xml =~ m/<answer>(.*?)<\/answer>/i;
-		$answer = $1;
-		my $x = $answer;
-		$x =~ s/\S/_/g;
-		$bot->say({channel=>$channel,body=>"[NatTrivia] ($topic) $question$x"});
+	my $xml = get 'http://eremita.di.uminho.pt:3000/random';
+	utf8::decode($xml) unless utf8::is_utf8($xml);
 
+	$xml =~ m/<topic>(.*?)<\/topic>/i;
+	$topic = $1;
+	$xml =~ m/<question>(.*?)<\/question>/i;
+	$question = $1;
+print STDERR "Q $question\n";
+	$xml =~ m/<answer>(.*?)<\/answer>/i;
+	$answer = $1;
+	my $x = $answer;
+	$x =~ s/\S/_/g;
+	$bot->say({channel=>$channel,body=>"[NatTrivia] ($topic) $question$x"});
 }
 
 sub help {'trivia [start|stop] to control the game'}
